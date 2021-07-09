@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { HeaderButtons, Item } from "react-navigation-header-buttons";
+import { PanGestureHandler, State } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
 
 import IoniconsHeaderButton from "../components/UI/IoniconsHeaderButton";
 import { RouteName } from "../navigation/RouteName";
@@ -29,8 +31,10 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
 
   const photos = useSelector((state: AppState) => state.photosList.photos);
 
-  let page = useRef(1);
-  let photosCount = useRef(photos.length);
+  const page = useRef(1);
+  const photosCount = useRef(photos.length);
+
+  const translateX = new Animated.Value(0);
 
   useEffect(() => {
     const loadPhotos = async () => {
@@ -56,19 +60,33 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
     });
   }, [navigation]);
 
+  const onGestureEvent = Animated.event([
+    { nativeEvent: { translationX: translateX } },
+  ]);
+
   if (loading) {
     return <ActivityIndicator style={styles.container} size="large" />;
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView snapToInterval={width} decelerationRate="fast" horizontal>
-        {photos?.map((photo) => (
-          <View key={photo.id} style={styles.picture}>
+      {photos?.slice(0, 3).map((photo, index) => (
+        <PanGestureHandler key={photo.id} onGestureEvent={onGestureEvent}>
+          <Animated.View
+            style={[
+              styles.picture,
+              {
+                top: 30 + index * 16,
+                bottom: 80 - index * 10,
+                width: width - 110 + index * 40,
+              },
+              { transform: [{ translateX }] },
+            ]}
+          >
             <Image style={styles.image} source={{ uri: photo.src }} />
-          </View>
-        ))}
-      </ScrollView>
+          </Animated.View>
+        </PanGestureHandler>
+      ))}
     </View>
   );
 };
@@ -82,8 +100,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   picture: {
-    width,
-    height,
+    position: "absolute",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    shadowColor: "black",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
     overflow: "hidden",
   },
   image: {
