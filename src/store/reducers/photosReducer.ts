@@ -19,7 +19,13 @@ export const photosReducer = (state: PhotosState = initialState, action: PhotosA
         case 'REMOVE_FAVORITE_PHOTO':
             return { ...state, favoritesPhotos: state.favoritesPhotos.filter(fav => fav.id !== action.removePhotoId) };
         case 'FAILED':
-            return initialState;
+            return {
+                ...state,
+                photos: [
+                    { id: 1, src: 'https://picsum.photos/200/300' },
+                    { id: 2, src: 'https://picsum.photos/200/300' },
+                    { id: 3, src: 'https://picsum.photos/200/300' }]
+            }; //initialState;
         default: return state;
     }
 };

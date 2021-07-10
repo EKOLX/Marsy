@@ -4,9 +4,9 @@ import {
   View,
   Text,
   ActivityIndicator,
-  ScrollView,
   Dimensions,
   Image,
+  TouchableOpacity,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { HeaderButtons, Item } from "react-navigation-header-buttons";
@@ -19,6 +19,7 @@ import {
 import Animated, { EasingNode } from "react-native-reanimated";
 
 import IoniconsHeaderButton from "../components/UI/IoniconsHeaderButton";
+import IoniconsButton from "../components/UI/IoniconsButton";
 import { RouteName } from "../navigation/RouteName";
 import { AppState } from "../store/AppState";
 import {
@@ -95,17 +96,20 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
     event: HandlerStateChangeEvent<PanGestureHandlerEventPayload>
   ) => {
     if (event.nativeEvent.oldState === State.ACTIVE) {
-      const translationX = event.nativeEvent.translationX;
-      lastSwipedPhotoId.current = -1;
-
-      Animated.timing(translateX, {
-        toValue: event.nativeEvent.translationX > 0 ? width : -width,
-        duration: 600,
-        easing: EasingNode.inOut(EasingNode.ease),
-      }).start(({ finished }) =>
-        onSwipeAnimationComplete(finished, translationX)
-      );
+      moveCard(event.nativeEvent.translationX);
     }
+  };
+
+  const moveCard = (translationX: number) => {
+    lastSwipedPhotoId.current = -1;
+
+    Animated.timing(translateX, {
+      toValue: translationX > 0 ? width : -width,
+      duration: 600,
+      easing: EasingNode.inOut(EasingNode.ease),
+    }).start(({ finished }) =>
+      onSwipeAnimationComplete(finished, translationX)
+    );
   };
 
   const onSwipeAnimationComplete = (
@@ -170,6 +174,21 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
             </Animated.View>
           </PanGestureHandler>
         ))}
+      <View style={styles.actions}>
+        <IoniconsButton
+          iconName="md-thumbs-down"
+          style={[styles.action, { backgroundColor: "black" }]}
+          onTap={() => moveCard(-1)}
+        />
+        <Text style={styles.statusText}>
+          {loading ? "Downloading..." : `${photos.length} cards`}
+        </Text>
+        <IoniconsButton
+          iconName="md-thumbs-up"
+          style={[styles.action, { backgroundColor: "red" }]}
+          onTap={() => moveCard(1)}
+        />
+      </View>
     </View>
   );
 };
@@ -197,5 +216,23 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
+  },
+  actions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    position: "absolute",
+    width: width - 10,
+    paddingHorizontal: 50,
+    bottom: 25,
+  },
+  action: {
+    width: width / 6,
+    height: width / 6,
+    borderRadius: width / 3,
+  },
+  statusText: {
+    marginTop: 40,
+    color: "gray",
+    fontWeight: "400",
   },
 });
