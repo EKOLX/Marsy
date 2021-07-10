@@ -21,7 +21,11 @@ import Animated, { EasingNode } from "react-native-reanimated";
 import IoniconsHeaderButton from "../components/UI/IoniconsHeaderButton";
 import { RouteName } from "../navigation/RouteName";
 import { AppState } from "../store/AppState";
-import { addFavoritePhoto, setPhotos } from "../store/actions/photosAction";
+import {
+  addFavoritePhoto,
+  removeFavoritePhoto,
+  setPhotos,
+} from "../store/actions/photosAction";
 
 interface MainScreenProps {
   navigation: any;
@@ -32,6 +36,7 @@ const photosPerScreen = 3;
 
 const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
   const [apiPage, setApiPage] = useState(1);
   const [page, setPage] = useState(0);
 
@@ -41,7 +46,7 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
 
   const translateX = new Animated.Value(0);
 
-  const swipeCompleted = useRef(false);
+  const lastSwipedPhotoId = useRef(-1);
 
   useEffect(() => {
     const loadPhotos = async () => {
@@ -59,13 +64,28 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
         <HeaderButtons HeaderButtonComponent={IoniconsHeaderButton}>
           <Item
             title="Favorites"
-            iconName="md-star-outline"
+            iconName="md-heart-outline"
             onPress={() => navigation.navigate(RouteName.Favorites)}
           />
         </HeaderButtons>
       ),
     });
   }, [navigation]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <HeaderButtons HeaderButtonComponent={IoniconsHeaderButton}>
+          <Item
+            title="Undo"
+            onPress={onUndoButtonPressed}
+            color={!canUndo ? "#CCC" : "red"}
+            disabled={!canUndo}
+          />
+        </HeaderButtons>
+      ),
+    });
+  }, [canUndo]);
 
   const onCardGestureEvent = Animated.event([
     { nativeEvent: { translationX: translateX } },
@@ -76,7 +96,7 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
   ) => {
     if (event.nativeEvent.oldState === State.ACTIVE) {
       const translationX = event.nativeEvent.translationX;
-      swipeCompleted.current = false;
+      lastSwipedPhotoId.current = -1;
 
       Animated.timing(translateX, {
         toValue: event.nativeEvent.translationX > 0 ? width : -width,
@@ -93,21 +113,31 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
     translationX: number
   ) => {
     // I don't know why but completion callback runs twice
-    if (!swipeCompleted.current && translationX > 0) {
-      swipeCompleted.current = true;
-      dispatch(addFavoritePhoto(photos[page]));
-    } else {
-      // Move to trash
-    }
+    if (lastSwipedPhotoId.current < 0) {
+      lastSwipedPhotoId.current = photos[page].id;
 
-    setPage((curPage) => {
-      if (curPage + photosPerScreen < photos.length) {
-        return curPage + 1;
+      if (translationX > 0) {
+        dispatch(addFavoritePhoto(photos[page]));
       } else {
-        setApiPage((curApiPage) => curApiPage + 1);
-        return 0;
+        // Move to trash
       }
-    });
+
+      setPage((curPage) => {
+        if (curPage + photosPerScreen < photos.length) {
+          return curPage + 1;
+        } else {
+          setApiPage((curApiPage) => curApiPage + 1);
+          return 0;
+        }
+      });
+      setCanUndo(true);
+    }
+  };
+
+  const onUndoButtonPressed = () => {
+    dispatch(removeFavoritePhoto(lastSwipedPhotoId.current));
+    setPage((curPage) => curPage - 1);
+    setCanUndo(false);
   };
 
   if (loading) {

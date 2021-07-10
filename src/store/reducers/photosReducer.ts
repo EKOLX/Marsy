@@ -13,9 +13,11 @@ export const photosReducer = (state: PhotosState = initialState, action: PhotosA
     switch (action.type) {
         case 'SET_PHOTOS':
             return { ...state, photos: action.photos! };
-        case 'SET_FAVORITE_PHOTO':
+        case 'ADD_FAVORITE_PHOTO':
             const updatedFavorites: Array<Photo> = [...state.favoritesPhotos, action.favoritePhoto!];
             return { ...state, favoritesPhotos: updatedFavorites };
+        case 'REMOVE_FAVORITE_PHOTO':
+            return { ...state, favoritesPhotos: state.favoritesPhotos.filter(fav => fav.id !== action.removePhotoId) };
         case 'FAILED':
             return initialState;
         default: return state;
