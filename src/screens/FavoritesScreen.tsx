@@ -1,12 +1,21 @@
 import React, { FC } from "react";
 import { StyleSheet, View, Text } from "react-native";
+import { useSelector } from "react-redux";
+
+import { AppState } from "../store/AppState";
 
 interface FavoritesScreenProps {}
 
 const FavoritesScreen: FC<FavoritesScreenProps> = () => {
+  const favorites = useSelector(
+    (state: AppState) => state.photosList.favoritesPhotos
+  );
+
   return (
     <View>
-      <Text>Favorites</Text>
+      {favorites.map((fav) => (
+        <Text key={fav.id}>{fav.src}</Text>
+      ))}
     </View>
   );
 };

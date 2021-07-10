@@ -10,41 +10,48 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { HeaderButtons, Item } from "react-navigation-header-buttons";
-import { PanGestureHandler, State } from "react-native-gesture-handler";
-import Animated from "react-native-reanimated";
+import {
+  PanGestureHandler,
+  HandlerStateChangeEvent,
+  State,
+  PanGestureHandlerEventPayload,
+} from "react-native-gesture-handler";
+import Animated, { EasingNode } from "react-native-reanimated";
 
 import IoniconsHeaderButton from "../components/UI/IoniconsHeaderButton";
 import { RouteName } from "../navigation/RouteName";
 import { AppState } from "../store/AppState";
-import { setPhotos } from "../store/actions/photosAction";
+import { addFavoritePhoto, setPhotos } from "../store/actions/photosAction";
 
 interface MainScreenProps {
   navigation: any;
 }
 
 const { width, height } = Dimensions.get("window");
+const photosPerScreen = 3;
 
 const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
+  const [apiPage, setApiPage] = useState(1);
+  const [page, setPage] = useState(0);
 
   const dispatch = useDispatch();
 
   const photos = useSelector((state: AppState) => state.photosList.photos);
 
-  const page = useRef(1);
-  const photosCount = useRef(photos.length);
-
   const translateX = new Animated.Value(0);
+
+  const swipeCompleted = useRef(false);
 
   useEffect(() => {
     const loadPhotos = async () => {
       setLoading(true);
-      await dispatch(setPhotos(page.current));
+      await dispatch(setPhotos(apiPage));
       setLoading(false);
     };
 
     loadPhotos();
-  }, [dispatch]);
+  }, [apiPage]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -60,9 +67,48 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
     });
   }, [navigation]);
 
-  const onGestureEvent = Animated.event([
+  const onCardGestureEvent = Animated.event([
     { nativeEvent: { translationX: translateX } },
   ]);
+
+  const onCardHandlerStateChange = (
+    event: HandlerStateChangeEvent<PanGestureHandlerEventPayload>
+  ) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      const translationX = event.nativeEvent.translationX;
+      swipeCompleted.current = false;
+
+      Animated.timing(translateX, {
+        toValue: event.nativeEvent.translationX > 0 ? width : -width,
+        duration: 600,
+        easing: EasingNode.inOut(EasingNode.ease),
+      }).start(({ finished }) =>
+        onSwipeAnimationComplete(finished, translationX)
+      );
+    }
+  };
+
+  const onSwipeAnimationComplete = (
+    finished: boolean,
+    translationX: number
+  ) => {
+    // I don't know why but completion callback runs twice
+    if (!swipeCompleted.current && translationX > 0) {
+      swipeCompleted.current = true;
+      dispatch(addFavoritePhoto(photos[page]));
+    } else {
+      // Move to trash
+    }
+
+    setPage((curPage) => {
+      if (curPage + photosPerScreen < photos.length) {
+        return curPage + 1;
+      } else {
+        setApiPage((curApiPage) => curApiPage + 1);
+        return 0;
+      }
+    });
+  };
 
   if (loading) {
     return <ActivityIndicator style={styles.container} size="large" />;
@@ -70,23 +116,30 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {photos?.slice(0, 3).map((photo, index) => (
-        <PanGestureHandler key={photo.id} onGestureEvent={onGestureEvent}>
-          <Animated.View
-            style={[
-              styles.picture,
-              {
-                top: 30 + index * 16,
-                bottom: 80 - index * 10,
-                width: width - 110 + index * 40,
-              },
-              { transform: [{ translateX }] },
-            ]}
+      {photos
+        ?.slice(page, photosPerScreen + page)
+        .reverse()
+        .map((photo, index) => (
+          <PanGestureHandler
+            key={photo.id}
+            onGestureEvent={onCardGestureEvent}
+            onHandlerStateChange={onCardHandlerStateChange}
           >
-            <Image style={styles.image} source={{ uri: photo.src }} />
-          </Animated.View>
-        </PanGestureHandler>
-      ))}
+            <Animated.View
+              style={[
+                styles.picture,
+                {
+                  top: 30 + index * 16,
+                  bottom: 80 - index * 10,
+                  width: width - 110 + index * 40,
+                },
+                { transform: [{ translateX: index === 2 ? translateX : 0 }] },
+              ]}
+            >
+              <Image style={styles.image} source={{ uri: photo.src }} />
+            </Animated.View>
+          </PanGestureHandler>
+        ))}
     </View>
   );
 };

@@ -2,11 +2,12 @@ import { Dispatch } from "react";
 
 import Photo from "../../models/Photo";
 
-export type PhotosActionType = 'SET_PHOTOS' | 'FAILED';
+export type PhotosActionType = 'SET_PHOTOS' | 'SET_FAVORITE_PHOTO' | 'FAILED';
 
 export interface PhotosAction {
     type: PhotosActionType;
     photos?: Array<Photo>;
+    favoritePhoto?: Photo;
 }
 
 export const setPhotos = (page: number) =>
@@ -19,7 +20,19 @@ export const setPhotos = (page: number) =>
 
             dispatch({ type: 'SET_PHOTOS', photos });
         } catch (err) {
-            console.error(err);
+            console.error("setPhotos error:", err);
             dispatch({ type: 'FAILED' });
         }
     };
+
+export const addFavoritePhoto = (photo: Photo) =>
+    async (dispatch: Dispatch<PhotosAction>) => {
+        try {
+            // Save to server
+            dispatch({ type: 'SET_FAVORITE_PHOTO', favoritePhoto: photo });
+        }
+        catch (err) {
+            console.error("setFavoritePhoto error:", err);
+            dispatch({ type: 'FAILED' });
+        }
+    }
