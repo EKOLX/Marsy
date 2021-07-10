@@ -80,7 +80,7 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
           <Item
             title="Undo"
             onPress={onUndoButtonPressed}
-            color={!canUndo ? "#CCC" : "red"}
+            color={!canUndo ? "#ccc" : "red"}
             disabled={!canUndo}
           />
         </HeaderButtons>
@@ -127,7 +127,7 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
       }
 
       setPage((curPage) => {
-        if (curPage + photosPerScreen < photos.length) {
+        if (curPage < photos.length - 1) {
           return curPage + 1;
         } else {
           setApiPage((curApiPage) => curApiPage + 1);
@@ -148,32 +148,47 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
     return <ActivityIndicator style={styles.container} size="large" />;
   }
 
+  if (photos.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text>No image to show.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {photos
         ?.slice(page, photosPerScreen + page)
         .reverse()
-        .map((photo, index) => (
-          <PanGestureHandler
-            key={photo.id}
-            onGestureEvent={onCardGestureEvent}
-            onHandlerStateChange={onCardHandlerStateChange}
-          >
-            <Animated.View
-              style={[
-                styles.picture,
-                {
-                  top: 30 + index * 16,
-                  bottom: 80 - index * 10,
-                  width: width - 110 + index * 40,
-                },
-                { transform: [{ translateX: index === 2 ? translateX : 0 }] },
-              ]}
+        .map((photo, index) => {
+          const canBeMoved =
+            index === 2 ||
+            (photos.length - 2 === page && index === 1) ||
+            (photos.length - 1 === page && index === 0);
+
+          return (
+            <PanGestureHandler
+              key={photo.id}
+              onGestureEvent={onCardGestureEvent}
+              onHandlerStateChange={onCardHandlerStateChange}
             >
-              <Image style={styles.image} source={{ uri: photo.src }} />
-            </Animated.View>
-          </PanGestureHandler>
-        ))}
+              <Animated.View
+                style={[
+                  styles.picture,
+                  {
+                    top: 30 + index * 16,
+                    bottom: 80 - index * 10,
+                    width: width - 110 + index * 40,
+                  },
+                  { transform: [{ translateX: canBeMoved ? translateX : 0 }] },
+                ]}
+              >
+                <Image style={styles.image} source={{ uri: photo.src }} />
+              </Animated.View>
+            </PanGestureHandler>
+          );
+        })}
       <View style={styles.actions}>
         <IoniconsButton
           iconName="md-thumbs-down"
