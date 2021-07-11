@@ -20,8 +20,8 @@ interface SwiperProps {
   onSwipeComplete: (movedCardId: number) => void;
 }
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const PHOTOS_PER_SCREEN = 3;
+const screenWidth = Dimensions.get("window").width;
+const photosPerScreen = 3;
 
 const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeComplete }) => {
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeComplete }) => {
 
   const dispatch = useDispatch();
 
-  const onCardGestureEvent = Animated.event([
+  let onCardGestureEvent = Animated.event([
     { nativeEvent: { translationX: translateX } },
   ]);
 
@@ -49,7 +49,7 @@ const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeComplete }) => {
     lastSwipedPhotoId.current = -1;
 
     Animated.timing(translateX, {
-      toValue: translationX > 0 ? SCREEN_WIDTH : -SCREEN_WIDTH,
+      toValue: translationX > 0 ? screenWidth : -screenWidth,
       duration: 600,
       easing: EasingNode.inOut(EasingNode.ease),
     }).start(({ finished }) =>
@@ -71,48 +71,53 @@ const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeComplete }) => {
         // Move to trash
       }
 
+      translateX.setValue(0);
       onSwipeComplete(lastSwipedPhotoId.current);
     }
   };
 
   return (
     <View style={styles.container}>
-      {images
-        ?.slice(topPage, PHOTOS_PER_SCREEN + topPage)
-        .reverse()
-        .map((photo, index) => {
-          // only top Image View
-          const canBeMoved =
-            index === 2 || // when there are 3 images
-            (images.length - 2 === topPage && index === 1) || // 2 images
-            (images.length - 1 === topPage && index === 0); // 1 image
+      <PanGestureHandler
+        onGestureEvent={onCardGestureEvent}
+        onHandlerStateChange={onCardHandlerStateChange}
+      >
+        <Animated.View style={styles.container}>
+          {images
+            ?.slice(topPage, photosPerScreen + topPage)
+            .reverse()
+            .map((photo, index) => {
+              // only top Image View
+              const canBeMoved =
+                index === 2 || // when there are 3 images
+                (images.length - 2 === topPage && index === 1) || // 2 images
+                (images.length - 1 === topPage && index === 0); // 1 image
 
-          return (
-            <PanGestureHandler
-              key={photo.id}
-              onGestureEvent={onCardGestureEvent}
-              onHandlerStateChange={onCardHandlerStateChange}
-            >
-              <Animated.View
-                style={[
-                  styles.picture,
-                  {
-                    top: 30 + index * 16,
-                    bottom: 80 - index * 10,
-                    width: SCREEN_WIDTH - 110 + index * 40,
-                  },
-                  { transform: [{ translateX: canBeMoved ? translateX : 0 }] },
-                ]}
-              >
-                <Image
-                  uri={photo.src}
-                  onLoad={() => setLoading(false)}
-                  loadingIndicatorSize="large"
-                />
-              </Animated.View>
-            </PanGestureHandler>
-          );
-        })}
+              return (
+                <Animated.View
+                  key={photo.id}
+                  style={[
+                    styles.picture,
+                    {
+                      top: 30 + index * 16,
+                      bottom: 80 - index * 10,
+                      width: screenWidth - 110 + index * 40,
+                    },
+                    {
+                      transform: [{ translateX: canBeMoved ? translateX : 0 }],
+                    },
+                  ]}
+                >
+                  <Image
+                    uri={photo.src}
+                    onLoad={() => setLoading(false)}
+                    loadingIndicatorSize="large"
+                  />
+                </Animated.View>
+              );
+            })}
+        </Animated.View>
+      </PanGestureHandler>
       <View style={styles.actions}>
         <IoniconsButton
           iconName="md-thumbs-down"
@@ -146,7 +151,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 10,
     shadowColor: "black",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 2, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 8,
@@ -156,14 +161,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     position: "absolute",
-    width: SCREEN_WIDTH - 10,
+    width: screenWidth - 10,
     paddingHorizontal: 50,
     bottom: 25,
   },
   action: {
-    width: SCREEN_WIDTH / 6,
-    height: SCREEN_WIDTH / 6,
-    borderRadius: SCREEN_WIDTH / 3,
+    width: screenWidth / 6,
+    height: screenWidth / 6,
+    borderRadius: screenWidth / 3,
   },
   statusText: {
     marginTop: 40,

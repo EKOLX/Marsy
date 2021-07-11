@@ -19,7 +19,10 @@ import Image from "../components/UI/CustomImage";
 
 interface FavoritesScreenProps {}
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
+const screenWidth = Dimensions.get("window").width;
+// Sizes can be changed according to screen width.
+const numColumns = 3;
+const itemMargin = 10;
 
 const FavoritesScreen: FC<FavoritesScreenProps> = () => {
   const [fullScreenImageUri, setFullScreenImageUri] = useState("");
@@ -48,17 +51,14 @@ const FavoritesScreen: FC<FavoritesScreenProps> = () => {
   };
 
   const renderFavorite: ListRenderItem<Photo> = ({ item }) => {
-    const itemMargin = 10;
-    const numColumns = 3;
     const size = PixelRatio.roundToNearestPixel(
-      (SCREEN_WIDTH - itemMargin * 2 * (numColumns + 1)) / numColumns
+      (screenWidth - itemMargin * 2 * (numColumns + 1)) / numColumns
     );
 
     return (
       <TouchableHighlight
-        key={item.id}
         style={[
-          styles.imageContainer,
+          styles.imageContext,
           { width: size, height: size, margin: itemMargin },
         ]}
         onPress={() => setFullScreenImageUri(item.src)}
@@ -82,11 +82,12 @@ const FavoritesScreen: FC<FavoritesScreenProps> = () => {
   return (
     <View style={styles.container}>
       <FlatList
-        numColumns={3}
-        contentContainerStyle={{ width: SCREEN_WIDTH }}
+        numColumns={numColumns}
+        contentContainerStyle={styles.imagesContainer}
         data={favorites}
         renderItem={renderFavorite}
         keyExtractor={keyExtractor}
+        showsVerticalScrollIndicator={false}
       />
       {fullScreenImageUri ? (
         <TouchableHighlight
@@ -108,7 +109,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  imageContainer: {
+  imagesContainer: {
+    flexGrow: 1,
+    width: screenWidth - itemMargin * 2,
+    paddingBottom: 20,
+  },
+  imageContext: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 10,
