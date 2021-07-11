@@ -1,15 +1,13 @@
 import React, { FC, useRef, useState } from "react";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
-import { useDispatch } from "react-redux";
 import {
   PanGestureHandler,
+  PanGestureHandlerEventPayload,
   HandlerStateChangeEvent,
   State,
-  PanGestureHandlerEventPayload,
 } from "react-native-gesture-handler";
 import Animated, { EasingNode } from "react-native-reanimated";
 
-import { addFavoritePhoto } from "../store/actions/photosAction";
 import IoniconsButton from "../components/UI/IoniconsButton";
 import Photo from "../models/Photo";
 import Image from "../components/UI/CustomImage";
@@ -17,22 +15,20 @@ import Image from "../components/UI/CustomImage";
 interface SwiperProps {
   images: Array<Photo>;
   topPage: number;
-  onSwipeComplete: (movedCardId: number) => void;
+  onSwipeEnd: (direction: "left" | "right", photo: Photo) => void;
 }
 
 const screenWidth = Dimensions.get("window").width;
-const photosPerScreen = 3;
+const imagesPerScreen = 3;
 
-const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeComplete }) => {
-  const [loading, setLoading] = useState(false);
+const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeEnd }) => {
+  const [loading, setLoading] = useState(true);
 
   const translateX = new Animated.Value(0);
 
   const lastSwipedPhotoId = useRef(-1);
 
-  const dispatch = useDispatch();
-
-  let onCardGestureEvent = Animated.event([
+  const onCardGestureEvent = Animated.event([
     { nativeEvent: { translationX: translateX } },
   ]);
 
@@ -52,27 +48,15 @@ const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeComplete }) => {
       toValue: translationX > 0 ? screenWidth : -screenWidth,
       duration: 600,
       easing: EasingNode.inOut(EasingNode.ease),
-    }).start(({ finished }) =>
-      onSwipeAnimationComplete(finished, translationX)
-    );
+    }).start(() => onSwipeAnimationComplete(translationX));
   };
 
-  const onSwipeAnimationComplete = (
-    finished: boolean,
-    translationX: number
-  ) => {
+  const onSwipeAnimationComplete = (translationX: number) => {
     //
     if (lastSwipedPhotoId.current < 0) {
       lastSwipedPhotoId.current = images[topPage].id;
 
-      if (translationX > 0) {
-        dispatch(addFavoritePhoto(images[topPage]));
-      } else {
-        // Move to trash
-      }
-
-      translateX.setValue(0);
-      onSwipeComplete(lastSwipedPhotoId.current);
+      onSwipeEnd(translationX > 0 ? "right" : "left", images[topPage]);
     }
   };
 
@@ -84,18 +68,17 @@ const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeComplete }) => {
       >
         <Animated.View style={styles.container}>
           {images
-            ?.slice(topPage, photosPerScreen + topPage)
+            ?.slice(topPage, imagesPerScreen + topPage)
             .reverse()
-            .map((photo, index) => {
-              // only top Image View
-              const canBeMoved =
+            .map((image, index) => {
+              const isTopCard =
                 index === 2 || // when there are 3 images
                 (images.length - 2 === topPage && index === 1) || // 2 images
                 (images.length - 1 === topPage && index === 0); // 1 image
 
               return (
                 <Animated.View
-                  key={photo.id}
+                  key={image.id}
                   style={[
                     styles.picture,
                     {
@@ -104,13 +87,15 @@ const Swiper: FC<SwiperProps> = ({ images, topPage, onSwipeComplete }) => {
                       width: screenWidth - 110 + index * 40,
                     },
                     {
-                      transform: [{ translateX: canBeMoved ? translateX : 0 }],
+                      transform: [{ translateX: isTopCard ? translateX : 0 }],
                     },
                   ]}
                 >
                   <Image
-                    uri={photo.src}
-                    onLoad={() => setLoading(false)}
+                    uri={image.src}
+                    onLoad={() => {
+                      if (isTopCard) setLoading(false);
+                    }}
                     loadingIndicatorSize="large"
                   />
                 </Animated.View>

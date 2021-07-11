@@ -5,9 +5,14 @@ import { HeaderButtons, Item } from "react-navigation-header-buttons";
 
 import { RouteName } from "../navigation/RouteName";
 import { AppState } from "../store/AppState";
-import { removeFavoritePhoto, setPhotos } from "../store/actions/photosAction";
+import {
+  addFavoritePhoto,
+  removeFavoritePhoto,
+  setPhotos,
+} from "../store/actions/photosAction";
 import IoniconsHeaderButton from "../components/UI/IoniconsHeaderButton";
 import Swiper from "../components/Swiper";
+import Photo from "../models/Photo";
 
 interface MainScreenProps {
   navigation: any;
@@ -70,8 +75,14 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
     setCanUndo(false);
   };
 
-  const onSwipeComplete = (movedCardId: number) => {
-    lastMovedCardId.current = movedCardId;
+  const onCardSwipeEnd = (direction: "left" | "right", photo: Photo) => {
+    lastMovedCardId.current = photo.id;
+
+    if (direction === "right") {
+      dispatch(addFavoritePhoto(photo));
+    } else {
+      // Move to trash
+    }
 
     setPage((curPage) => {
       if (curPage < photos.length - 1) {
@@ -96,9 +107,7 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
     );
   }
 
-  return (
-    <Swiper images={photos} topPage={page} onSwipeComplete={onSwipeComplete} />
-  );
+  return <Swiper images={photos} topPage={page} onSwipeEnd={onCardSwipeEnd} />;
 };
 
 export default MainScreen;
