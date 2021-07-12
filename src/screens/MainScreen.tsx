@@ -13,6 +13,7 @@ import {
 import IoniconsHeaderButton from "../components/UI/IoniconsHeaderButton";
 import Swiper from "../components/Swiper";
 import Photo from "../models/Photo";
+import { Direction } from "../models/Direction";
 
 interface MainScreenProps {
   navigation: any;
@@ -75,10 +76,10 @@ const MainScreen: FC<MainScreenProps> = ({ navigation }) => {
     setCanUndo(false);
   };
 
-  const onCardSwipeEnd = (direction: "left" | "right", photo: Photo) => {
+  const onCardSwipeEnd = (direction: Direction, photo: Photo) => {
     lastMovedCardId.current = photo.id;
 
-    if (direction === "right") {
+    if (direction === Direction.Right) {
       dispatch(addFavoritePhoto(photo));
     } else {
       // Move to trash
